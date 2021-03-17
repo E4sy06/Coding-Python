@@ -63,6 +63,7 @@ bt = datetime.fromtimestamp(boot_time_timestamp)
 partitions = psutil.disk_partitions()
 for interface_name, interface_addresses in if_addrs.items():
     for address in interface_addresses:
+        # Hier muss ein Befehl rein - sonst ist das ein syntax error!
 for p in partitions:
     try:
         partition_usage = psutil.disk_usage(p.mountpoint)
